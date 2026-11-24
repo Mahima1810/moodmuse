@@ -24,6 +24,14 @@ def read_table(source: str | Path | bytes, filename: str | None = None) -> pd.Da
     return pd.read_csv(io.BytesIO(raw), sep=sep, engine="python", encoding_errors="replace")
 
 
+def text_columns(df: pd.DataFrame) -> list[str]:
+    """Columns that can hold text. pandas 2 stores text as `object`; pandas 3 uses a dedicated `str` dtype."""
+    return [
+        c for c in df.columns
+        if pd.api.types.is_object_dtype(df[c]) or pd.api.types.is_string_dtype(df[c])
+    ]
+
+
 def guess_text_column(df: pd.DataFrame) -> str:
     """Pick the column that most looks like free text: string-typed with the longest average length."""
     candidates = []

@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from moodmuse import analyze, to_markdown
-from moodmuse.data import guess_text_column, read_table
+from moodmuse.data import guess_text_column, read_table, text_columns
 
 SAMPLE = Path(__file__).parent / "data" / "sample_reviews.csv"
 COLORS = {"positive": "#20b486", "neutral": "#9aa0b4", "negative": "#ef5b5b"}
@@ -72,7 +72,10 @@ with st.sidebar:
     except ValueError as exc:
         st.error(str(exc))
         st.stop()
-    columns = [c for c in df.columns if df[c].dtype == object]
+    columns = text_columns(df)
+    if not columns:
+        st.error("No text column found. Make sure the file has a column of written feedback.")
+        st.stop()
     column = st.selectbox("Text column", columns, index=columns.index(default_col) if default_col in columns else 0)
 
     auto_k = st.toggle("Choose number of themes automatically", value=True)
@@ -138,7 +141,7 @@ with right:
         legend=dict(orientation="h", y=-0.05), annotations=[dict(
             text=f"<b>{stats['avg_score']:+.2f}</b><br>avg score", showarrow=False, font=dict(size=15))],
     )
-    st.plotly_chart(donut, use_container_width=True)
+    st.plotly_chart(donut, width="stretch")
 
 # ---------------- themes ----------------
 st.subheader("Themes")
@@ -155,7 +158,7 @@ bars = px.bar(
 )
 bars.update_layout(height=60 + 42 * len(rows), margin=dict(t=10, b=10, l=10, r=10), barmode="stack",
                    legend=dict(orientation="h", y=1.08, title=None))
-st.plotly_chart(bars, use_container_width=True)
+st.plotly_chart(bars, width="stretch")
 
 cards = st.columns(min(3, len(a.theme_rows)))
 for i, t in enumerate(a.theme_rows):
@@ -187,7 +190,7 @@ scatter = px.scatter(
 scatter.update_traces(marker=dict(size=10, line=dict(width=1, color="white"), opacity=0.9))
 scatter.update_layout(height=480, margin=dict(t=10, b=10, l=10, r=10),
                       xaxis=dict(visible=False), yaxis=dict(visible=False))
-st.plotly_chart(scatter, use_container_width=True)
+st.plotly_chart(scatter, width="stretch")
 
 # ---------------- table + downloads ----------------
 st.subheader("All entries")
@@ -204,12 +207,12 @@ if query:
     view = view[view["text"].str.contains(query, case=False, regex=False)]
 st.dataframe(
     view[["text", "sentiment", "score", "theme_name"]].rename(columns={"theme_name": "theme"}),
-    use_container_width=True, hide_index=True,
+    width="stretch", hide_index=True,
     column_config={"score": st.column_config.ProgressColumn("score", min_value=-1, max_value=1, format="%.2f")},
 )
 
 d1, d2, _ = st.columns([1, 1, 3])
 d1.download_button("⬇ Results CSV", table.drop(columns=["x", "y"]).to_csv(index=False), "moodmuse_results.csv",
-                   "text/csv", use_container_width=True)
+                   "text/csv", width="stretch")
 d2.download_button("⬇ Report (Markdown)", to_markdown(a), "moodmuse_report.md", "text/markdown",
-                   use_container_width=True)
+                   width="stretch")

@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT))
 
 from moodmuse import analyze, to_markdown  # noqa: E402
 from moodmuse.__main__ import main as cli_main  # noqa: E402
-from moodmuse.data import clean_texts, guess_text_column, read_table  # noqa: E402
+from moodmuse.data import clean_texts, guess_text_column, read_table, text_columns  # noqa: E402
 from moodmuse.sentiment import label_for, score_texts  # noqa: E402
 from moodmuse.themes import _dedupe_terms, find_themes  # noqa: E402
 
@@ -122,3 +122,10 @@ def test_cli_writes_report(tmp_path):
     out = tmp_path / "report.md"
     assert cli_main([str(SAMPLE), "--column", "review", "--k", "4", "--out", str(out), "--themes", "tfidf"]) == 0
     assert out.read_text(encoding="utf-8").startswith("# MoodMuse report")
+
+
+def test_text_columns_finds_text_on_any_pandas_version():
+    # pandas 2 reads text as `object`, pandas 3 as `str`; both must be offered as text columns.
+    df = read_table(Path(__file__).resolve().parent.parent / "data" / "sample_reviews.csv")
+    assert text_columns(df) == ["review"]
+    assert text_columns(df.astype({"review": "string"})) == ["review"]
